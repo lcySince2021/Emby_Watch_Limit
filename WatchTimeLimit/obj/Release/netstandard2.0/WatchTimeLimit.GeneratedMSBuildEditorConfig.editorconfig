@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = WatchTimeLimit
+build_property.ProjectDir = /vol1/1000/Shared/emby_ex/WatchTimeLimit/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

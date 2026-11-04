@@ -1,0 +1,10 @@
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.csproj.AssemblyReference.cache
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.GeneratedMSBuildEditorConfig.editorconfig
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.AssemblyInfoInputs.cache
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.AssemblyInfo.cs
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.csproj.CoreCompileInputs.cache
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/bin/Release/netstandard2.0/WatchTimeLimit.deps.json
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/bin/Release/netstandard2.0/WatchTimeLimit.dll
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/bin/Release/netstandard2.0/WatchTimeLimit.pdb
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.dll
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.pdb

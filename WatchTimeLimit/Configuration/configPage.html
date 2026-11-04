@@ -1,0 +1,109 @@
+<div id="WatchTimeLimitConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+     data-require="emby-input,emby-button,emby-checkbox,emby-select" data-controller="__plugin/WatchTimeLimitjs">
+    <div data-role="content">
+        <div class="content-primary">
+
+            <h2 class="sectionTitle">观看时长限制</h2>
+
+            <form class="wtlConfigForm">
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="wtlEnabled" />
+                        <span>启用观看时长限制</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">关闭后停止计时，被插件禁用的账户会立即恢复。</div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="wtlDefaultLimit" min="0" label="默认每日时长（分钟，0 = 不限制）" />
+                </div>
+
+                <div class="selectContainer">
+                    <select is="emby-select" id="wtlResetHour" label="每日重置时间"></select>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="text" id="wtlTimeZone" label="时区（如 Asia/Shanghai，留空使用服务器时区）" />
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="wtlWarn" min="0" label="剩余多少分钟时提醒（0 = 不提醒，剩 1 分钟时会再提醒一次）" />
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="wtlGrace" min="0" label="超时后允许看完当前内容（最多分钟，0 = 立即停止）" />
+                    <div class="fieldDescription">时长用完时如果正在播放，不会立刻掐断；切换到其他内容或到时间后才停止并禁用。</div>
+                </div>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="wtlNotifyStart" />
+                        <span>开始播放时提示今日剩余时长（同一用户 10 分钟内最多一次）</span>
+                    </label>
+                </div>
+
+                <h3 class="sectionTitle" style="margin-top:1.5em;">受限媒体库</h3>
+                <div class="fieldDescription" style="margin-bottom:.8em;">只有播放勾选的媒体库内容才计时；都不勾选表示所有媒体库都计时。</div>
+                <div class="wtlLibraries" style="margin-bottom:1em;"></div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="wtlBlockOnly" />
+                        <span>超时后只停用受限媒体库，不禁用账户</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">需要勾选了受限媒体库才生效。超时后其他媒体库照常可看，受限媒体库的内容一开播就会被停止。</div>
+                </div>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="wtlApplyAdmins" />
+                        <span>管理员也受限制</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="wtlCountPaused" />
+                        <span>暂停状态也计时</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="wtlRevoke" />
+                        <span>超时后强制登出所有设备</span>
+                    </label>
+                </div>
+
+                <button is="emby-button" type="submit" class="raised button-submit block"><span>保存</span></button>
+            </form>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2.5em;">
+                <h2 class="sectionTitle" style="margin:0;">用户状态</h2>
+                <div>
+                    <button is="emby-button" type="button" class="raised wtlRefresh"><span>刷新</span></button>
+                    <button is="emby-button" type="button" class="raised wtlResetAll"><span>全部重置</span></button>
+                </div>
+            </div>
+            <div class="fieldDescription">“每日时长”填 -1 使用默认值，0 为不限制。“加时”与“今日豁免”在下次重置时失效。</div>
+
+            <div style="overflow-x:auto;margin-top:1em;">
+                <table class="wtlTable" style="width:100%;border-collapse:collapse;white-space:nowrap;">
+                    <thead>
+                        <tr style="text-align:left;">
+                            <th style="padding:.5em;">用户</th>
+                            <th style="padding:.5em;">状态</th>
+                            <th style="padding:.5em;">已用 / 上限</th>
+                            <th style="padding:.5em;">剩余</th>
+                            <th style="padding:.5em;">受限</th>
+                            <th style="padding:.5em;">每日时长</th>
+                            <th style="padding:.5em;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="wtlRows"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
