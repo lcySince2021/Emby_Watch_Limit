@@ -10,6 +10,7 @@
 - 每天在设定的整点自动重置，被插件禁用的账户自动恢复
 - 可选“受限媒体库”：只有播放这些库的内容才计时（不选 = 全部计时）
 - 超时处理方式：禁用账户（默认），或“只停用受限媒体库”——账户保持可用，其他库照常观看；插件会临时把受限库从该用户的媒体库权限里移除（重置/加时/豁免/第二天自动加回），所以 strm 直链、不响应远程命令的第三方播放器也无法再开播
+- 观看统计：每个账号近 7 天（按天）和近 30 天（合计 / 日均 / 观看天数 / 最多的一天）的观看时长表格，含受限媒体库占比；记录保留 31 天，更早的自动删除
 - 每个用户可单独设置：是否受限、每日时长（-1 = 用默认值，0 = 不限）
 - 管理操作：重置 / 全部重置 / 今日加时（可为负数）/ 临时豁免（N 小时或到下次重置，-1 取消）
 - 全局开关，以及“管理员是否受限”开关
@@ -27,13 +28,14 @@
 
 ## 数据文件
 - 配置：`plugins/configurations/WatchTimeLimit.xml`
-- 当日使用量：`plugins/configurations/WatchTimeLimit.state.json`（只在有变化时写入；仅时长累计时最多每分钟写一次，禁用/恢复/管理操作立即写入）
+- 当日使用量和近 31 天观看记录：`plugins/configurations/WatchTimeLimit.state.json`（只在有变化时写入；仅时长累计时最多每分钟写一次，禁用/恢复/管理操作立即写入）
 
 ## REST API（仅管理员）
 | 方法 | 路径 | 参数 |
 |---|---|---|
 | GET  | /emby/WatchTimeLimit/Status | |
 | GET  | /emby/WatchTimeLimit/Libraries | |
+| GET  | /emby/WatchTimeLimit/Stats | Days（1-31，默认 7） |
 | POST | /emby/WatchTimeLimit/Users/{UserId}/Reset | |
 | POST | /emby/WatchTimeLimit/ResetAll | |
 | POST | /emby/WatchTimeLimit/Users/{UserId}/Bonus | Minutes |

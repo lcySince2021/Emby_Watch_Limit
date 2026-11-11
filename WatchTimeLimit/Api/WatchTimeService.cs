@@ -16,6 +16,13 @@ namespace WatchTimeLimit.Api
     {
     }
 
+    [Route("/WatchTimeLimit/Stats", "GET", Summary = "最近 Days 天（最多 31）每个用户每天的观看时长")]
+    [Authenticated(Roles = "Admin")]
+    public class GetWatchTimeStats : IReturn<WatchStats>
+    {
+        public int Days { get; set; } = 7;
+    }
+
     [Route("/WatchTimeLimit/Users/{UserId}/Reset", "POST", Summary = "重置用户今日时长")]
     [Authenticated(Roles = "Admin")]
     public class ResetWatchTime : IReturnVoid
@@ -67,6 +74,8 @@ namespace WatchTimeLimit.Api
         public object Get(GetWatchTimeStatus request) => Manager.GetStatus();
 
         public object Get(GetWatchTimeLibraries request) => Manager.GetLibraries();
+
+        public object Get(GetWatchTimeStats request) => Manager.GetStats(request.Days);
 
         public void Post(ResetWatchTime request) => Manager.ResetUser(request.UserId);
 

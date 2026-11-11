@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WatchTimeLimit")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e56f53b6a6d5a07e77ae580657e0639dd5047019")]
 [assembly: System.Reflection.AssemblyProductAttribute("WatchTimeLimit")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WatchTimeLimit")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

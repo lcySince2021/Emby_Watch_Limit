@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -47,6 +48,42 @@ namespace WatchTimeLimit
     {
         public string Day { get; set; }
         public List<UserState> Users { get; set; } = new List<UserState>();
+
+        /// <summary>每日观看记录，保留 HistoryDays 天。</summary>
+        public List<DayHistory> History { get; set; } = new List<DayHistory>();
+    }
+
+    public class DayHistory
+    {
+        public string Day { get; set; }
+        public List<UserDayUsage> Users { get; set; } = new List<UserDayUsage>();
+    }
+
+    public class UserDayUsage
+    {
+        public string UserId { get; set; }
+
+        /// <summary>实际观看时长（所有媒体库，暂停是否计入跟随设置）。</summary>
+        public double TotalSeconds { get; set; }
+
+        /// <summary>其中受限媒体库的时长。</summary>
+        public double LimitedSeconds { get; set; }
+    }
+
+    public class WatchStats
+    {
+        /// <summary>从旧到新，最后一天是今天。</summary>
+        public List<string> Days { get; set; }
+        public bool HasLimitedLibraries { get; set; }
+        public List<UserWatchStats> Users { get; set; }
+    }
+
+    public class UserWatchStats
+    {
+        public string UserId { get; set; }
+        public string Name { get; set; }
+        public double[] TotalSeconds { get; set; }
+        public double[] LimitedSeconds { get; set; }
     }
 
     public class UserStatus
@@ -81,6 +118,9 @@ namespace WatchTimeLimit
 
         /// <summary>仅累计时长变化时，最多每隔这么久写一次磁盘。</summary>
         private const int SaveIntervalSeconds = 60;
+
+        /// <summary>观看记录保留天数（含今天）。</summary>
+        private const int HistoryDays = 31;
 
         /// <summary>开始播放时的剩余时长提示，同一用户的最小间隔。</summary>
         private static readonly TimeSpan StartNoticeInterval = TimeSpan.FromMinutes(10);
@@ -168,6 +208,42 @@ namespace WatchTimeLimit
                 {
                     _state.Users = new List<UserState>();
                 }
+                if (_state.History == null)
+                {
+                    _state.History = new List<DayHistory>();
+                }
+                PruneHistory();
+            }
+        }
+
+        private UserDayUsage GetDayUsage(string userId)
+        {
+            var day = _state.History.FirstOrDefault(d => d.Day == _state.Day);
+            if (day == null)
+            {
+                day = new DayHistory { Day = _state.Day };
+                _state.History.Add(day);
+            }
+            var usage = day.Users.FirstOrDefault(u => string.Equals(u.UserId, userId, StringComparison.OrdinalIgnoreCase));
+            if (usage == null)
+            {
+                usage = new UserDayUsage { UserId = userId };
+                day.Users.Add(usage);
+            }
+            return usage;
+        }
+
+        /// <summary>删除 HistoryDays 天之前的记录。</summary>
+        private void PruneHistory()
+        {
+            if (!DateTime.TryParseExact(_state.Day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var today))
+            {
+                return;
+            }
+            var oldest = today.AddDays(-(HistoryDays - 1)).ToString("yyyy-MM-dd");
+            if (_state.History.RemoveAll(d => d.Day == null || string.CompareOrdinal(d.Day, oldest) < 0) > 0)
+            {
+                MarkDirty(true);
             }
         }
 
@@ -382,15 +458,25 @@ namespace WatchTimeLimit
                     _lastTickUtc = now;
 
                     var rolled = CheckRollover();
-                    var playing = Config.Enabled ? GetPlayingUserIds() : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var watching = GetWatchingUserIds(out var limitedWatching);
+                    var playing = Config.Enabled ? limitedWatching : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                     if (elapsed > 0)
                     {
                         // 同一用户多个会话同时播放只按真实时间计一次
+                        foreach (var userId in watching)
+                        {
+                            var usage = GetDayUsage(userId);
+                            usage.TotalSeconds += elapsed;
+                            if (limitedWatching.Contains(userId))
+                            {
+                                usage.LimitedSeconds += elapsed;
+                            }
+                            MarkDirty();
+                        }
                         foreach (var userId in playing)
                         {
                             GetState(userId).UsedSeconds += elapsed;
-                            MarkDirty();
                         }
                     }
 
@@ -429,6 +515,7 @@ namespace WatchTimeLimit
                 // DisabledByPlugin 留给 Evaluate 去恢复账户
                 ClearDaily(s);
             }
+            PruneHistory();
             MarkDirty(true);
             return true;
         }
@@ -436,15 +523,23 @@ namespace WatchTimeLimit
         /// <summary>正在计时的用户：播放受限媒体库内容，且未暂停（除非开启了暂停计时）。</summary>
         private HashSet<string> GetPlayingUserIds()
         {
+            GetWatchingUserIds(out var limited);
+            return limited;
+        }
+
+        /// <summary>正在观看的用户（未暂停，除非开启了暂停计时）；limited 为其中播放受限媒体库内容的用户。</summary>
+        private HashSet<string> GetWatchingUserIds(out HashSet<string> limited)
+        {
             var countPaused = Config.CountPausedTime;
             var libs = LimitedLibraries();
-            return new HashSet<string>(
-                _sessionManager.Sessions
-                    .Where(s => !string.IsNullOrEmpty(s.UserId) && s.NowPlayingItem != null)
-                    .Where(s => countPaused || s.PlayState == null || !s.PlayState.IsPaused)
-                    .Where(s => IsLimitedSession(s, libs))
-                    .Select(s => s.UserId),
+            var sessions = _sessionManager.Sessions
+                .Where(s => !string.IsNullOrEmpty(s.UserId) && s.NowPlayingItem != null)
+                .Where(s => countPaused || s.PlayState == null || !s.PlayState.IsPaused)
+                .ToList();
+            limited = new HashSet<string>(
+                sessions.Where(s => IsLimitedSession(s, libs)).Select(s => s.UserId),
                 StringComparer.OrdinalIgnoreCase);
+            return new HashSet<string>(sessions.Select(s => s.UserId), StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>该用户正在播放（含暂停）受限内容的会话。</summary>
@@ -968,6 +1063,45 @@ namespace WatchTimeLimit
                 }
                 SaveIfNeeded();
                 return list;
+            }
+        }
+
+        /// <summary>最近 days 天（含今天）每个用户每天的观看时长。</summary>
+        public WatchStats GetStats(int days)
+        {
+            days = Math.Max(1, Math.Min(HistoryDays, days));
+            lock (_lock)
+            {
+                CheckRollover();
+                var today = DateTime.ParseExact(_state.Day, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var dayKeys = Enumerable.Range(0, days)
+                    .Select(i => today.AddDays(i - days + 1).ToString("yyyy-MM-dd"))
+                    .ToList();
+                var history = _state.History.Where(d => d.Day != null).GroupBy(d => d.Day)
+                    .ToDictionary(g => g.Key, g => g.SelectMany(d => d.Users).ToList());
+
+                var users = GetAllUsers().OrderBy(u => u.Name).Select(user =>
+                {
+                    var userId = user.Id.ToString("N");
+                    var usages = dayKeys.Select(day => history.TryGetValue(day, out var list)
+                        ? list.FirstOrDefault(u => string.Equals(u.UserId, userId, StringComparison.OrdinalIgnoreCase))
+                        : null).ToList();
+                    return new UserWatchStats
+                    {
+                        UserId = userId,
+                        Name = user.Name,
+                        TotalSeconds = usages.Select(u => Math.Round(u?.TotalSeconds ?? 0)).ToArray(),
+                        LimitedSeconds = usages.Select(u => Math.Round(u?.LimitedSeconds ?? 0)).ToArray()
+                    };
+                }).ToList();
+
+                SaveIfNeeded();
+                return new WatchStats
+                {
+                    Days = dayKeys,
+                    HasLimitedLibraries = LimitedLibraries().Count > 0,
+                    Users = users
+                };
             }
         }
 

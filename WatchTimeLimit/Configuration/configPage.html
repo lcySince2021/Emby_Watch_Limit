@@ -104,6 +104,22 @@
                 </table>
             </div>
 
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2.5em;">
+                <h2 class="sectionTitle" style="margin:0;">观看统计</h2>
+                <div>
+                    <button is="emby-button" type="button" class="raised wtlStatsTab" data-days="7"><span>近 7 天</span></button>
+                    <button is="emby-button" type="button" class="raised wtlStatsTab" data-days="30"><span>近 30 天</span></button>
+                </div>
+            </div>
+            <div class="fieldDescription">按实际观看时间统计（含不受限的媒体库），今天的数据会随播放持续更新。记录保留 31 天，更早的自动删除。</div>
+
+            <div style="overflow-x:auto;margin-top:1em;">
+                <table style="width:100%;border-collapse:collapse;white-space:nowrap;">
+                    <thead class="wtlStatsHead"></thead>
+                    <tbody class="wtlStatsRows"></tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>

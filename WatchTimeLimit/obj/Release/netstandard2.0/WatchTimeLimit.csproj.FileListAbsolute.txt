@@ -8,3 +8,4 @@
 /vol1/1000/Shared/emby_ex/WatchTimeLimit/bin/Release/netstandard2.0/WatchTimeLimit.pdb
 /vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.dll
 /vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.pdb
+/vol1/1000/Shared/emby_ex/WatchTimeLimit/obj/Release/netstandard2.0/WatchTimeLimit.sourcelink.json

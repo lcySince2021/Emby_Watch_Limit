@@ -16,6 +16,23 @@ define(['baseView', 'loading', 'emby-input', 'emby-button', 'emby-checkbox', 'em
         });
     }
 
+    var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+    function cell(total, limited, hasLimited) {
+        if (!total) {
+            return '<span style="opacity:.4;">—</span>';
+        }
+        var html = fmt(total);
+        if (hasLimited && limited && Math.round(limited) !== Math.round(total)) {
+            html += '<div style="font-size:85%;opacity:.65;">受限 ' + fmt(limited) + '</div>';
+        }
+        return html;
+    }
+
+    function sum(list) {
+        return list.reduce(function (a, b) { return a + b; }, 0);
+    }
+
     function post(path, params) {
         return ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl(path, params || {}) });
     }
@@ -58,6 +75,14 @@ define(['baseView', 'loading', 'emby-input', 'emby-button', 'emby-checkbox', 'em
                 loading.hide();
             });
             return false;
+        });
+
+        self.statsDays = 7;
+        Array.prototype.forEach.call(view.querySelectorAll('.wtlStatsTab'), function (btn) {
+            btn.addEventListener('click', function () {
+                self.statsDays = parseInt(btn.getAttribute('data-days'), 10);
+                self.loadStats();
+            });
         });
 
         view.querySelector('.wtlRefresh').addEventListener('click', function () {
@@ -180,17 +205,83 @@ define(['baseView', 'loading', 'emby-input', 'emby-button', 'emby-checkbox', 'em
         });
     };
 
+    View.prototype.loadStats = function () {
+        var view = this.view;
+        var days = this.statsDays || 7;
+        Array.prototype.forEach.call(view.querySelectorAll('.wtlStatsTab'), function (btn) {
+            btn.style.opacity = parseInt(btn.getAttribute('data-days'), 10) === days ? '1' : '.55';
+        });
+
+        return ApiClient.getJSON(ApiClient.getUrl('WatchTimeLimit/Stats', { Days: days })).then(function (stats) {
+            var th = function (text, align) {
+                return '<th style="padding:.5em;text-align:' + (align || 'right') + ';">' + text + '</th>';
+            };
+            var td = function (html, align) {
+                return '<td style="padding:.5em;vertical-align:top;text-align:' + (align || 'right') + ';">' + html + '</td>';
+            };
+            var lim = stats.HasLimitedLibraries;
+            var users = stats.Users.map(function (u) {
+                return {
+                    name: u.Name,
+                    total: u.TotalSeconds,
+                    limited: u.LimitedSeconds,
+                    sum: sum(u.TotalSeconds),
+                    sumLimited: sum(u.LimitedSeconds)
+                };
+            }).sort(function (a, b) { return b.sum - a.sum; });
+
+            var head, rows;
+            if (days <= 7) {
+                head = th('用户', 'left') + stats.Days.map(function (d, i) {
+                    var date = new Date(d + 'T00:00:00');
+                    var label = i === stats.Days.length - 1 ? '今天' : d.slice(5);
+                    return th(label + '<div style="font-size:85%;opacity:.65;font-weight:normal;">' + weekdays[date.getDay()] + '</div>');
+                }).join('') + th('合计') + th('日均');
+
+                rows = users.map(function (u) {
+                    return '<tr style="border-top:1px solid rgba(128,128,128,.25);">' + td(esc(u.name), 'left') +
+                        u.total.map(function (t, i) { return td(cell(t, u.limited[i], lim)); }).join('') +
+                        td('<b>' + cell(u.sum, u.sumLimited, lim) + '</b>') +
+                        td(cell(u.sum / stats.Days.length, 0, false)) + '</tr>';
+                });
+            } else {
+                head = th('用户', 'left') + th('合计') + (lim ? th('其中受限') : '') + th('日均') + th('观看天数') + th('最多的一天');
+
+                rows = users.map(function (u) {
+                    var maxIndex = 0;
+                    u.total.forEach(function (t, i) { if (t > u.total[maxIndex]) { maxIndex = i; } });
+                    var watchedDays = u.total.filter(function (t) { return t >= 60; }).length;
+                    var maxText = u.total[maxIndex]
+                        ? stats.Days[maxIndex].slice(5) + '　' + fmt(u.total[maxIndex])
+                        : '<span style="opacity:.4;">—</span>';
+                    return '<tr style="border-top:1px solid rgba(128,128,128,.25);">' + td(esc(u.name), 'left') +
+                        td('<b>' + cell(u.sum, 0, false) + '</b>') +
+                        (lim ? td(cell(u.sumLimited, 0, false)) : '') +
+                        td(cell(u.sum / stats.Days.length, 0, false)) +
+                        td(watchedDays + ' / ' + stats.Days.length) +
+                        td(maxText) + '</tr>';
+                });
+            }
+
+            view.querySelector('.wtlStatsHead').innerHTML = '<tr>' + head + '</tr>';
+            view.querySelector('.wtlStatsRows').innerHTML = rows.join('');
+        });
+    };
+
     View.prototype.onResume = function (options) {
         BaseView.prototype.onResume.apply(this, arguments);
         var self = this;
         this.loadConfig().then(function () {
             return self.loadStatus();
+        }).then(function () {
+            return self.loadStats();
         });
         this.refreshTimer = setInterval(function () {
             // 正在编辑表格时不刷新，避免覆盖输入
             if (!self.view.querySelector('.wtlRows').contains(document.activeElement)) {
                 self.loadStatus();
             }
+            self.loadStats();
         }, 30000);
     };
 
